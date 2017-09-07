@@ -31,9 +31,10 @@ class osbaseline::repos (
       }
     }
     file { $yum_repos_d :
-      ensure => directory,
-      purge  => $purge_repos,
-      mode   => '0755',
+      ensure  => directory,
+      recurse => $purge_repos,
+      purge   => $purge_repos,
+      mode    => '0755',
     }
 
     file { $yum_conf_path:
