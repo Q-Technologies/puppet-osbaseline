@@ -2,8 +2,10 @@
 class osbaseline (
   # Class parameters are populated from External(hiera)/Defaults/Fail
   Boolean $enforce_baseline = true,
-  Boolean $purge_repos     = false,
-  String  $proxy_url       = '',
+  Boolean $purge_repos      = false,
+  String  $proxy_url        = '',
+  Data    $yum_defaults     = {},
+  Data    $zypper_defaults  = {},
 ) {
 
 

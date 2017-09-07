@@ -6,11 +6,13 @@ class osbaseline::repos (
   String $yum_log,
 
   # Class parameters are populated from External(hiera)/Defaults/Fail
-  Data      $yum_defaults    = {},
-  Data      $zypper_defaults = {},
-  Boolean   $purge_repos = $::osbaseline::purge_repos,
-  String    $proxy_url   = $::osbaseline::proxy_url,
+  Data      $yum_defaults    = $::osbaseline::yum_defaults,
+  Data      $zypper_defaults = $::osbaseline::zypper_defaults,
+  Boolean   $purge_repos     = $::osbaseline::purge_repos,
+  String    $proxy_url       = $::osbaseline::proxy_url,
 ) {
+
+  include stdlib
 
   $yum_all_repos  = hiera_hash('osbaseline::repos::all_yum', {})
   $this_os             = downcase( $facts['os']['name'] )
@@ -47,7 +49,20 @@ class osbaseline::repos (
                                                 }),
     }
 
-    create_resources('yumrepo', $yum_repos, $yum_defaults)
+    #create_resources('yumrepo', $yum_repos, $yum_defaults)
+    $yum_repos.each | $name, $data | {
+      $data2 = deep_merge( { 'name' => $name, descr => $name }, $yum_defaults, $data )
+      file { "${yum_repos_d}/${name}":
+        ensure  => file,
+        mode    => '0444',
+        content => inline_epp(@(END), { name => $name, data => $data2 })
+          [<%= $name %>]
+          <% $data.each | $key, $value | { -%>
+          <%= $key %>=<%= $value %>
+          <% } -%>
+          | END
+      }
+    }
 
     if $::osfamily == 'RedHat' and $::operatingsystemmajrelease == '7' {
       service { 'choose_repo':
