@@ -1,0 +1,18 @@
+[main]
+cachedir=/var/cache/yum/$basearch/$releasever
+keepcache=0
+debuglevel=2
+logfile=<%= $yum_log %>
+exactarch=1
+obsoletes=1
+gpgcheck=1
+plugins=1
+installonly_limit=3
+distroverpkg=<%= $os %>-release
+http_cache=none
+<% unless empty($yum_proxy_url) { -%> 
+proxy=<%= $yum_proxy_url %>
+<% } -%>
+reposdir=<%= $yum_repos_d %>
+
+

@@ -1,0 +1,5 @@
+# osbaseline/data/common
+---
+osbaseline::repos::yum_conf_path: /etc/yum.conf
+osbaseline::repos::yum_repos_d: /etc/yum.repos.d
+osbaseline::repos::yum_log: /var/log/yum.log

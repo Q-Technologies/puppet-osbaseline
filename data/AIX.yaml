@@ -1,0 +1,4 @@
+# osbaseline/data/common
+---
+osbaseline::repos::yum_conf_path: /opt/freeware/etc/yum/yum.conf
+
