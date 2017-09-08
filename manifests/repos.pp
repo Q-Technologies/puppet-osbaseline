@@ -52,15 +52,17 @@ class osbaseline::repos (
     #create_resources('yumrepo', $yum_repos, $yum_defaults)
     $yum_repos.each | $name, $data | {
       $data2 = deep_merge( { 'name' => $name, descr => $name }, $yum_defaults, $data )
-      file { "${yum_repos_d}/${name}":
-        ensure  => file,
-        mode    => '0444',
-        content => inline_epp(@(END), { name => $name, data => $data2 })
-          [<%= $name %>]
-          <% $data.each | $key, $value | { -%>
-          <%= $key %>=<%= $value %>
-          <% } -%>
-          | END
+      if !empty( $data ) {
+        file { "${yum_repos_d}/${name}.repo":
+          ensure  => file,
+          mode    => '0444',
+          content => inline_epp(@(END), { name => $name, data => $data2 })
+            [<%= $name %>]
+            <% $data.each | $key, $value | { -%>
+            <%= $key %>=<%= $value %>
+            <% } -%>
+            | END
+        }
       }
     }
 

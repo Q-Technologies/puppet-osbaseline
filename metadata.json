@@ -1,6 +1,6 @@
 {
   "name": "qtechnologies-osbaseline",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "author": "qtechnologies",
   "summary": "Manage OS patch baselines with Puppet",
   "license": "Apache-2.0",
