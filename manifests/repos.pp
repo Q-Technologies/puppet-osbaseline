@@ -10,12 +10,13 @@ class osbaseline::repos (
   Data      $zypper_defaults = $::osbaseline::zypper_defaults,
   Boolean   $purge_repos     = $::osbaseline::purge_repos,
   String    $proxy_url       = $::osbaseline::proxy_url,
+  Boolean   $do_update       = false,
 ) {
 
   include stdlib
 
   $yum_all_repos  = hiera_hash('osbaseline::repos::all_yum', {})
-  $this_os             = downcase( $facts['os']['name'] )
+  $this_os        = downcase( $facts['os']['name'] )
   $yum_os_repos   = hiera_hash("osbaseline::repos::${this_os}_yum", {})
   $yum_repos      = merge( $yum_all_repos, $yum_os_repos )
   $zypper_repos   = hiera_hash('osbaseline::repos::zypper',{})
@@ -25,7 +26,7 @@ class osbaseline::repos (
     ensure => absent,
   }
 
-  if $facts['os']['family'] =~ /RedHat|AIX|Suse/ {
+  if $facts['os']['family'] =~ /RedHat|AIX/ {
     if $facts['os']['family'] == 'AIX' {
       file { '/etc/yum.conf' :
         ensure => link,
@@ -52,10 +53,19 @@ class osbaseline::repos (
     #create_resources('yumrepo', $yum_repos, $yum_defaults)
     $yum_repos.each | $name, $data | {
       $data2 = deep_merge( { 'name' => $name, descr => $name }, $yum_defaults, $data )
-      if !empty( $data ) {
+      if $name =~ /baseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ and $do_update {
+        $execs = [ Exec['yum clean'], Exec['queue yum update' ] ]
+      }
+      else {
+        $execs = [ Exec['yum clean'] ]
+      }
+      if !empty( $data ) and
+          ( ( $name =~ /baseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ )
+            or $name !~ /baseline/ ){
         file { "${yum_repos_d}/${name}.repo":
           ensure  => file,
           mode    => '0444',
+          notify  => $execs,
           content => inline_epp(@(END), { name => $name, data => $data2 })
             [<%= $name %>]
             <% $data.each | $key, $value | { -%>
@@ -64,6 +74,25 @@ class osbaseline::repos (
             | END
         }
       }
+    }
+
+    exec { 'yum clean':
+      command     => '/usr/bin/yum clean all',
+      path        => '/bin:/usr/bin',
+      refreshonly => true,
+    }
+
+    exec { 'queue yum update':
+      command     => 'touch /tmp/need_yum_update',
+      path        => '/bin:/usr/bin',
+      notify      => Exec['yum update' ],
+      refreshonly => true,
+    }
+
+    exec { 'yum update':
+      command => '/usr/bin/yum distro-sync --assumeyes --disablerepo=\* --enablerepo=\*baseline\* && rm -f /tmp/need_yum_update',
+      path    => '/bin:/usr/bin',
+      onlyif  => 'bash -c "[[ -e /tmp/need_yum_update ]]"',
     }
 
     if $::osfamily == 'RedHat' and $::operatingsystemmajrelease == '7' {

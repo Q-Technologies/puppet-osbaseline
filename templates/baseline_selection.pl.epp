@@ -1,0 +1,156 @@
+#!/usr/bin/env perl
+
+# This script is for moving nodes into and out of Puppet groups that control which
+# baseline version the systems should receive.
+#
+# It makes the following assumptions:
+#   * The parent group is 'All Nodes' - do not change this group!
+#   * all baseline groups match this format 'SOE Patch Level : YYYY-MM-DD'
+#
+# Author: Matthew Mallard
+# Website: www.q-technologies.com.au
+# Date: 26th August 2016
+
+use strict;
+use 5.10.0;
+use YAML::XS qw(Dump Load LoadFile);
+use Data::Dumper;
+use String::CamelCase qw( camelize );
+use Puppet::Classify;
+use Puppet::DB;
+use Getopt::Std;
+#use Term::ANSIColor;
+use Log::MixedColor;
+
+my $log = Log::MixedColor->new;
+my $config = LoadFile( "<%= $selection_config_path %>" );
+
+# Command line argument processing
+our( $opt_a, $opt_g, $opt_h, $opt_v, $opt_d, $opt_f );
+getopts('a:g:hvdf');
+
+# Constants
+use constant DEBUG_MSG => "debug";
+use constant ERROR_MSG => "error";
+
+# Globals
+my $nodes;
+my $parent_id;
+my $classes = {};
+my $parent = "All Nodes";
+my $our_name = "SOE Patch Level";
+$our_name = $config->{group_names_prefix} if $config->{group_names_prefix};
+my $soe_prefix = $our_name." : ";
+my $soe_parent = $soe_prefix."Default";
+my $default_osbaseline_date = $config->{default_osbaseline_date};
+if( $default_osbaseline_date !~ /\d{4}-\d\d-\d\d/ ){
+    say "Please set the date for 'default_osbaseline_date' in the configuration file in YYYY-MM-DD format";
+    exit 1;
+}
+#my $def_rule = [ 'and', [ '~', ['facts','os', 'release', 'major'], '^[67]$'], [ '=', ['facts','os', 'family'], 'RedHat'] ];
+my $default_group_rule = $config->{default_group_rule};
+
+# Create a Puppet classification object
+#my $classify = Puppet::Classify->new( $config->{puppet_classify_host} );
+my $classify = Puppet::Classify->new( 
+                                      server_name     => $config->{puppet_classify_host},
+                                      cert_name       => $config->{puppet_classify_cert},
+                                      puppet_db       => Puppet::DB->new($config->{puppetdb_host}),
+                                      puppet_ssl_path => $config->{puppet_ssl_path},
+                                    );
+
+# Preliminary input checks
+if( $opt_h ){
+    say "$0 -a action -g group [-f] [-v] [-d] node1 [node2] [node3]";
+    exit;
+}
+my @actions = qw(init_soe empty_group add_to_group list_group list_groups add_group purge_old_nodes remove_from_group remove_group );
+my $action_re = join("|", @actions);
+$action_re = qr/$action_re/;
+$log->fatal_err( "You need to specify the script action: -a ".join(" | ", @actions ) ) if not $opt_a =~ $action_re;
+$log->fatal_err( "You need to specify the group to act upon (-g)" ) if not $opt_g and $opt_a !~ /init_soe|list_groups|purge_old_nodes/;
+
+# Mainline
+my $groups = $classify->get_groups();
+#say Dumper( $groups );
+
+my $seo_parent_id = $classify->get_group_id( $soe_parent );
+$log->fatal_err( "Could not find the ID of the '$soe_parent' group which is required.\n  Perhaps you need to run the 'init_soe' action." ) if not $soe_parent and $opt_a ne "init_soe";
+
+# See if we need to add the prefix to the group
+$opt_g = $soe_prefix.$opt_g if( $opt_g !~ /^$soe_prefix/ );
+
+if( $opt_a eq "empty_group" ){
+    $classify->empty_group_of_pinned_nodes( $opt_g );
+} elsif( $opt_a eq "add_to_group" ){
+    $log->fatal_err( "You need to specify the nodes to add to the group" ) if not @ARGV;
+    $classify->pin_nodes_to_group( $opt_g, \@ARGV );
+} elsif( $opt_a eq "remove_from_group" ){
+    $log->fatal_err( "You need to specify the nodes to remove from the group" ) if not @ARGV;
+    $classify->remove_pinned_node_from_group( $opt_g, \@ARGV );
+} elsif( $opt_a eq "add_group" ){
+    add_soe_group( $seo_parent_id, $opt_g, \@ARGV);
+} elsif( $opt_a eq "purge_old_nodes" ){
+    $classify->purge_old_nodes( $seo_parent_id );
+} elsif( $opt_a eq "remove_group" ){
+    $classify->remove_group_safe( $opt_g, $opt_f );
+} elsif( $opt_a eq "list_group" ){
+    $classify->list_nodes_pinned_in_group( $opt_g );
+} elsif( $opt_a eq "list_groups" ){
+    list_soe_groups();
+} elsif( $opt_a eq "init_soe" ){
+    my $parent_id = $classify->get_group_id( $parent );
+    $log->fatal_err( "Could not find the ID of the '$parent' group which is required.\n  Did someone delete this group accidently?." ) if not $parent_id;
+    init_soe( $parent_id, $soe_parent );
+} else {
+    $log->fatal_err( "The action: '$opt_a' is not known to the script" );
+    exit 1;
+}
+
+sub init_soe {
+    my $parent_id = shift;
+    my $name = shift;
+
+    my $group_def = { name        => $name,
+                      environment => 'production',
+                      description => "Parent and default group for nodes being assigned to an $our_name",
+                      parent      => $parent_id,
+                      rule        => $default_group_rule,
+                      classes     => $classes,
+                      variables   => { osbaseline_date => $default_osbaseline_date },
+                    };
+    $classify->add_group_safe( $name, $group_def, $opt_f );
+
+}
+
+sub list_soe_groups {
+    my $soe_groups = $classify->get_groups_match( qr/^$soe_prefix\d{4}-\d\d-\d\d/ );
+    for my $group ( @$soe_groups ){
+        say $group->{name};
+    }
+}
+
+
+sub add_soe_group {
+    my $parent_id = shift;
+    my $name = shift;
+    my $nodes = shift;
+
+    $log->fatal_err( "The group name (".$log->quote($name).") must match YYYY-MM-DD" ) if $name !~ /^$soe_prefix(\d{4}-\d\d-\d\d)$/;
+    my $date = $1;
+
+    my $rule = [];
+    my $group_def = { name => $name,
+                      environment => 'production',
+                      description => "Group to assign nodes to the $our_name: $date",
+                      parent      => $parent_id,
+                      #rule       => $rule,
+                      classes     => $classes,
+                      variables   => { osbaseline_date => $date },
+                    };
+    $classify->add_group_safe( $name, $group_def );
+    $classify->pin_nodes_to_group( $name, $nodes ) if @$nodes > 0;
+
+}
+
+

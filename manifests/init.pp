@@ -16,4 +16,7 @@ class osbaseline (
   } else {
     include osbaseline::repos
   }
+
+  # The following will only install things if directed to by hiera - set osbaseline::scripts::install to true for the relevant scope
+  include osbaseline::scripts
 }
