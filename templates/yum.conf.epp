@@ -8,7 +8,7 @@ obsoletes=1
 gpgcheck=1
 plugins=1
 installonly_limit=3
-distroverpkg=<%= $os %>-release
+#distroverpkg=<%= $os %>-release
 http_cache=none
 <% unless empty($yum_proxy_url) { -%> 
 proxy=<%= $yum_proxy_url %>

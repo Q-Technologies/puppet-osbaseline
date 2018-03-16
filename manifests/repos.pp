@@ -15,12 +15,12 @@ class osbaseline::repos (
 
   include stdlib
 
-  $yum_all_repos  = hiera_hash('osbaseline::repos::all_yum', {})
+  $yum_all_repos  = lookup('osbaseline::repos::all_yum', Data, 'deep', {})
   $this_os        = downcase( $facts['os']['name'] )
-  $yum_os_repos   = hiera_hash("osbaseline::repos::${this_os}_yum", {})
+  $yum_os_repos   = lookup("osbaseline::repos::${this_os}_yum", Data, 'deep', {})
   $yum_repos      = merge( $yum_all_repos, $yum_os_repos )
-  $zypper_repos   = hiera_hash('osbaseline::repos::zypper',{})
-  $repos_to_purge = hiera_array('osbaseline::repos::purge',[])
+  $zypper_repos   = lookup('osbaseline::repos::zypper', Data, 'deep', {})
+  $repos_to_purge = lookup('osbaseline::repos::purge', Collection, 'unique', [])
 
   file { $repos_to_purge:
     ensure => absent,

@@ -5,7 +5,7 @@ class osbaseline::scripts (
   # Get the script paths for Perl scripts
   String $selection_script_path = '/usr/local/bin/baseline_selection.pl',
   String $selection_config_path = '/usr/local/etc/baseline_selection.yaml',
-  Data $selection_config = hiera_hash('osbaseline::scripts::selection_config', {}),
+  Data $selection_config = lookup('osbaseline::scripts::selection_config', Data, 'deep', {}),
 
 ){
 

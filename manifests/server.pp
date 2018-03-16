@@ -1,8 +1,8 @@
 # == Class: osbaseline::server
 class osbaseline::server (
   String $definitions_path = '/etc/lobm/baselines',
-  Data $configuration      = hiera_hash( 'osbaseline::server::configuration', {} ),
-  Data $definitions        = lookup( 'osbaseline::server::definitions', Data, 'hash', {} ),
+  Data $configuration      = lookup( 'osbaseline::server::configuration', Data, 'deep', {} ),
+  Data $definitions        = lookup( 'osbaseline::server::definitions', Data, 'deep', {} ),
   String $lobm_install_from = 'package',
 ){
 
