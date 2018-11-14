@@ -5,7 +5,7 @@ osbaseline::repos::yum_repos_d: /etc/yum.repos.d
 osbaseline::repos::yum_log: /var/log/yum.log
 osbaseline::scripts::selection_script_path: /usr/local/bin/baseline_selection.pl
 osbaseline::scripts::selection_config_path: /usr/local/etc/baseline_selection.yaml
-osbaseline::scripts::selection_config:
+osbaseline::scripts::selection_config_default:
   puppet_classify_host: puppet
   puppet_classify_port: 4433
   puppet_classify_cert: api_access
