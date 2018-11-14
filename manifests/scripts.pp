@@ -3,8 +3,8 @@ class osbaseline::scripts (
   Boolean $install = false,
 
   # Get the script paths for Perl scripts
-  String $selection_script_path = '/usr/local/bin/baseline_selection.pl',
-  String $selection_config_path = '/usr/local/etc/baseline_selection.yaml',
+  String $selection_script_path,
+  String $selection_config_path,
   Data $selection_config = lookup('osbaseline::scripts::selection_config', Data, 'deep', {}),
 
 ){

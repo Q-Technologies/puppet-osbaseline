@@ -26,17 +26,19 @@ This module provides the ability to easily manage Operating System baseline leve
 this by setting up the package repositories (YUM for RedHat/AIX and Zypper for Suse).  It can 
 be used to manage any repositories, but it's designed to work smoothly with https://github.com/Q-Technologies/lobm (the 
 Linux OS Baseline Maker) - which basically uses symbolic links to snapshot repositories by date, ensuring all systems
-have exacting the same patches (package versions) installed.
+have exacting the same patches (package versions) installed for each baseline.
 
 ## Setup
 
 ### What osbaseline affects
 
-It manages the package repositories a client is pointing to.
+The client component manages the package repositories a client is pointing to.  The server component installs scripts 
+on the requested servers.
 
 ### Setup Requirements
 
 It requires hiera data to drive the configuration and a set of groups in the classifier (setting an appropriate variable).
+The groups in the classifier are populated with scripts to make it easier to bulk move clients from one baseline to another.
 
 ### Beginning with osbaseline
 
@@ -47,30 +49,62 @@ include osbaseline
 
 or
 ```
-class { 'osbaseline': }`
+class { 'osbaseline': }
 ```
 
-But, bear in mind, it doesn't support all OS's, so it's worth wrapping like this:
-```
-  # For Red Hat based systems - set up the OS baseline capabilities (e.g. repos)
-  if $facts['os']['family'] == 'RedHat' {
-    class { 'osbaseline': 
-      purge_repos      => true,
-    }
-  }
-```
+If called on an unsupported OS, it will be ignored.
+
 The `purge_repos` option will force all unmanaged repositories to be removed.
 
 ## Usage - For Repository Users
 
 ### Repositories only
 
-If you just want to use it to manage generic repositories, set **enforce_baseline** to false in heira or when calling the class:
+If you just want to use it to manage generic repositories (i.e. not date based), set **enforce_baseline** to false in heira or when calling the class:
 ```
 class { 'osbaseline':
   enforce_baseline = false
-}`
+}
 ```
+Or, in hiera, e.g. `data/os/AIX.yaml`:
+```
+osbaseline::enforce_baseline: false
+```
+
+Inside your Hiera you need to define the location of the repositories to be managed, e.g.:
+```
+
+osbaseline::repos::all_yum:
+  'linuxutil':
+    descr: 'Common Linux Utilities Repo'
+    name: 'LinuxUtil'
+    baseurl: "http://%{::yum_server}/apps/linuxutil/%{::operatingsystem}/%{::operatingsystemmajrelease}"
+    enabled: 1
+    sslverify: 0
+
+osbaseline::repos::redhat_yum:
+  'base':
+    descr: "%{::operatingsystem} %{::operatingsystemmajrelease} Baseline %{::osbaseline_date}"
+    name: "%{::operatingsystem}_baseline_%{::osbaseline_date}"
+    baseurl: "http://%{::yum_server}/baselines/%{::operatingsystem}%{::operatingsystemmajrelease}_%{::osbaseline_date}"
+    sslverify: 0
+
+osbaseline::repos::centos_yum:
+  'base':
+    descr: "%{::operatingsystem} %{::operatingsystemmajrelease} Baseline %{::osbaseline_date}"
+    name: "%{::operatingsystem}_baseline_%{::osbaseline_date}"
+    baseurl: "http://%{::yum_server}/baselines/%{::operatingsystem}%{::operatingsystemmajrelease}_%{::osbaseline_date}"
+    sslverify: 0
+
+```
+
+The `all_yum` data goes to all Linux systems that understand yum (e.g. RHEL, Centos, OEL and AIX (if configured)).  The `redhat_yum` data only goes onto
+redhat branded systems, likewise for `centos_yum`.  This data is found by the module by looking in Heira for a key matching the OS name + `_yum`.  This provides the ability direct match 
+the correct repos to the different vendors of Enterprise Linux - i.e., so you don't put Red Hat patches onto Centos or vice versa.
+
+The module does a deep merge when looking for the repository data, so that different roles or nodes can add to the repository list without having to redefine them all each time.
+
+The `osbaseline_date` date is set according to the next section, but needs to match whatever URLs you are serving your OS patches on.
 
 ### Manage OS Baseline
 If you want to manage the repositories as well as enforce an OS Baseline, you will need to set up some Node Classifer groups (or otherwise set
@@ -86,11 +120,9 @@ If `osbaseline::repos::do_update` is set to `true` in Hiera, the `yum distro-syn
 Currently a reboot is not performed, but this is expected to be added in the future.
 
 #### Included Scripts to Manage Groups
-There are included scripts to manage the creation of the groups and to make it easier to move nodes between the groups.  To install the scripts
-on a host, set Hiera data along these lines in the scope you want them installed:
+There are included scripts to manage the creation of the groups and to make it easier to move nodes between the groups.  The scripts are managed through hiera.
 ```
-osbaseline::scripts::install: true
-# The following two lines are defaults also
+# The following hiera are the defaults and can be overridden
 osbaseline::scripts::selection_script_path: /usr/local/bin/baseline_selection.pl
 osbaseline::scripts::selection_config_path: /usr/local/etc/baseline_selection.yaml
 osbaseline::scripts::selection_config:
@@ -101,6 +133,12 @@ osbaseline::scripts::selection_config:
   puppetdb_host: localhost
   puppetdb_port: 8080
   group_names_prefix: OS Baseline
+```
+
+```
+# The following are more site specific and must be set up in the environment hiera
+osbaseline::scripts::install: true
+osbaseline::scripts::selection_config:
   default_osbaseline_date: '2017-08-31'
   default_group_rule: [ 'and', [ '~', ['facts','os', 'release', 'major'], '^[67]$'], [ '=', ['facts','os', 'family'], 'RedHat'] ]
 ```
