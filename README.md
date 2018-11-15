@@ -88,20 +88,22 @@ osbaseline::repos::all_yum:
     sslverify: 0
 
 osbaseline::repos::redhat_yum:
-  'base':
+  'osbaseline':
     descr: "%{::operatingsystem} %{::operatingsystemmajrelease} Baseline %{::osbaseline_date}"
     name: "%{::operatingsystem}_baseline_%{::osbaseline_date}"
     baseurl: "http://%{::yum_server}/baselines/%{::operatingsystem}%{::operatingsystemmajrelease}_%{::osbaseline_date}"
     sslverify: 0
 
 osbaseline::repos::centos_yum:
-  'base':
+  'osbaseline':
     descr: "%{::operatingsystem} %{::operatingsystemmajrelease} Baseline %{::osbaseline_date}"
     name: "%{::operatingsystem}_baseline_%{::osbaseline_date}"
     baseurl: "http://%{::yum_server}/baselines/%{::operatingsystem}%{::operatingsystemmajrelease}_%{::osbaseline_date}"
     sslverify: 0
 
 ```
+
+**Note: the repository that corresponds to the OS baseline must be labeled: `osbaseline` for the automated upgrading to work.**
 
 The `all_yum` data goes to all Linux systems that understand yum (e.g. RHEL, Centos, OEL and AIX (if configured)).  The `redhat_yum` data only goes onto
 redhat branded systems, likewise for `centos_yum`.  This data is found by the module by looking in Heira for a key matching the `$facts['os']['name']` + `_yum`.  This provides

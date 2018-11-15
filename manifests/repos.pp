@@ -50,18 +50,21 @@ class osbaseline::repos (
                                                 }),
     }
 
-    #create_resources('yumrepo', $yum_repos, $yum_defaults)
+    # Create the repositories based on the yum repo data found in hiera. If an osbaseline one is specified
+    # and updates are turned on, then run the yum update.  For all other repos, just run a yum clean all.
+    # Yum update will be notified and because it is refresh only, it will only run if the baseline has changed.
+
     $yum_repos.each | $name, $data | {
       $data2 = deep_merge( { 'name' => $name, descr => $name }, $yum_defaults, $data )
-      if $name =~ /baseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ and $do_update {
+      if $name =~ /osbaseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ and $do_update {
         $execs = [ Exec['yum clean'], Exec['queue yum update' ] ]
       }
       else {
         $execs = [ Exec['yum clean'] ]
       }
       if !empty( $data ) and
-          ( ( $name =~ /baseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ )
-            or $name !~ /baseline/ ){
+          ( ( $name =~ /osbaseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ )
+            or $name !~ /osbaseline/ ){
         file { "${yum_repos_d}/${name}.repo":
           ensure  => file,
           mode    => '0444',
@@ -90,7 +93,7 @@ class osbaseline::repos (
     }
 
     exec { 'yum update':
-      command => '/usr/bin/yum distro-sync --assumeyes --disablerepo=\* --enablerepo=\*baseline\* && rm -f /tmp/need_yum_update',
+      command => '/usr/bin/yum distro-sync --assumeyes --disablerepo=\* --enablerepo=\*osbaseline\* && rm -f /tmp/need_yum_update',
       path    => '/bin:/usr/bin',
       onlyif  => 'bash -c "[[ -e /tmp/need_yum_update ]]"',
     }
