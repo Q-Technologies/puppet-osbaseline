@@ -13,7 +13,12 @@
   * [Repositories only](#repositories-only)
   * [Manage OS Baseline](#manage-os-baseline)
     * [Included Scripts to Manage Groups](#included-scripts-to-manage-groups)
-      * [Script invocation](#script-invocation)
+    * [Script to Manage OS Baseline groups](#script-to-manage-os-baseline-groups)
+      * [Examples](#examples)
+        * [Initialize the groups in the Classifier](#initialize-the-groups-in-the-classifier)
+        * [Add a couple of baseline groups](#add-a-couple-of-baseline-groups)
+        * [Move nodes from one baseline to another](#move-nodes-from-one-baseline-to-another)
+        * [Remove a group even if nodes are pinned to it](#remove-a-group-even-if-nodes-are-pinned-to-it)
 * [Usage - For Repository Servers](#usage---for-repository-servers)
 * [Limitations](#limitations)
 * [Development](#development)
@@ -99,31 +104,34 @@ osbaseline::repos::centos_yum:
 ```
 
 The `all_yum` data goes to all Linux systems that understand yum (e.g. RHEL, Centos, OEL and AIX (if configured)).  The `redhat_yum` data only goes onto
-redhat branded systems, likewise for `centos_yum`.  This data is found by the module by looking in Heira for a key matching the OS name + `_yum`.  This provides the ability direct match 
+redhat branded systems, likewise for `centos_yum`.  This data is found by the module by looking in Heira for a key matching the `$facts['os']['name']` + `_yum`.  This provides
+ the ability to direct 
 the correct repos to the different vendors of Enterprise Linux - i.e., so you don't put Red Hat patches onto Centos or vice versa.
 
 The module does a deep merge when looking for the repository data, so that different roles or nodes can add to the repository list without having to redefine them all each time.
 
-The `osbaseline_date` date is set according to the next section, but needs to match whatever URLs you are serving your OS patches on.
+The `baseurl` of the repository must match whatever URLs you are serving the baselines as on your YUM server.  The `osbaseline_date` date is set according in the node classifier (described in the next section) - again, this date needs to align to the YUM repo baselines.
+
 
 ### Manage OS Baseline
 If you want to manage the repositories as well as enforce an OS Baseline, you will need to set up some Node Classifer groups (or otherwise set
 a global variable with the baseline version).  If this variable is not set it will fail a Puppet run saying the baseline variable is not set.
 
 If using the Node Classifer, create a group that matches all the nodes you want to manage and set up a variable with the date of the 
-baseline, e.g.: `osbaseline_date` = `2017-09-30`.  This can also be achieved by setting a fact, but is harder to manage.  
+baseline, e.g.: `osbaseline_date` = `2018-09-30`.  This can also be achieved by setting a fact, but is harder to manage.  
 
 Create additional groups with different dates and move hosts between them as desired.  The repository URIs will be updated accordingly
 on the next Puppet runs.
 
 If `osbaseline::repos::do_update` is set to `true` in Hiera, the `yum distro-sync` operation will be run against the baseline repo only.
-Currently a reboot is not performed, but this is expected to be added in the future.
+Currently a reboot is not performed, but this may be added in the future (depending on demand).
 
 #### Included Scripts to Manage Groups
 There are included scripts to manage the creation of the groups and to make it easier to move nodes between the groups.  The scripts are managed through hiera.
+
 ```
 # The following hiera are the defaults and can be overridden
-osbaseline::scripts::selection_script_path: /usr/local/bin/baseline_selection.pl
+osbaseline::scripts::selection_script_path: /usr/local/bin/baseline_selection
 osbaseline::scripts::selection_config_path: /usr/local/etc/baseline_selection.yaml
 osbaseline::scripts::selection_config:
   puppet_classify_host: puppet
@@ -142,27 +150,55 @@ osbaseline::scripts::selection_config:
   default_osbaseline_date: '2017-08-31'
   default_group_rule: [ 'and', [ '~', ['facts','os', 'release', 'major'], '^[67]$'], [ '=', ['facts','os', 'family'], 'RedHat'] ]
 ```
+
 It reality, this needs to be run on the Puppet master due to access to certificates.  If you want to run on another host, you can copy the 
 access cert and the CA to another host.  Use `puppet cert generate api_access` to create a cert and add it to `/etc/puppetlabs/console-services/rbac-certificate-whitelist`.
 
-##### Script invocation
+**Note: There is no mechanism to stop a node being pinned to two groups.  If this happens, Puppet will fail, and you'll need to make sure each node is only in one group.**
+
+#### Script to Manage OS Baseline groups
 ```
-baseline_selection.pl -a action -g group [-f] [node1] [node2] [node3]
+baseline_selection -a action -g group [-f] [node1] [node2] [node3]
 ```
 
 * -a, the script actions:
-  * init_soe - create the default group
-  * empty_group - empty a group of the nodes pinned to it
+  * init_soe - create the default group. All nodes matched by the `default_group_rule` will go into this group and receive the `default_osbaseline_date`.  They will receive a different date by being in a new baseline group.
+  * add_group - add a new baseline group
+  * remove_group - remove the specified group
   * add_to_group - pin a node to a group
+  * remove_from_group - remove the specified nodes from a group
+  * empty_group - empty a group of the nodes pinned to it
   * list_group - list the nodes pinned to a group
   * list_groups - list all the sub groups in parent baseline group
-  * add_group - add a new baseline group
   * purge_old_nodes - remove all the nodes not found in the PuppetDB
-  * remove_from_group - remove the specified nodes from a group
-  * remove_group - remove the specified group
 * -g, specify a group name
 * -f, force, e.g force the removal of a group even if nodes are pinned to it
 * the list of nodes are required when adding/removing from a group
+
+##### Examples
+
+###### Initialize the groups in the Classifier
+
+    baseline_selection -a init_soe
+
+###### Add a couple of baseline groups
+
+    baseline_selection -a add_group -g 2018-09-30
+    baseline_selection -a add_group -g 2018-10-31
+
+###### Move nodes from one baseline to another
+    
+    cat > host.list
+    node1.example.com 
+    node2.example.com 
+    node3.example.com
+    <ctrl-d>
+    baseline_selection -a remove_from_group -g 2018-09-30 `cat host.list`
+    baseline_selection -a add_to_group -g 2018-10-31 `cat host.list`
+
+###### Remove a group even if nodes are pinned to it
+
+    baseline_selection -a remove_group -f
 
 ## Usage - For Repository Servers
 Include the `osbaseline::server` class in the profile of your repository server:
