@@ -1,12 +1,14 @@
 # == Class: osbaseline::scripts
 class osbaseline::scripts (
-  Boolean $install = false,
 
   # Get the script paths for Perl scripts
   String $selection_script_path,
   String $selection_config_path,
   Data $selection_config_default,
   Data $selection_config = lookup('osbaseline::scripts::selection_config', Data, 'deep', {}),
+
+  # Whether to install the scripts or not
+  Boolean $install = false,
 
 ){
 

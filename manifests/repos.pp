@@ -45,13 +45,13 @@ class osbaseline::repos (
     # Turn off RedHat subscription if we are also purging the repos
     if $facts['os']['name'] == 'RedHat' and lookup('osbaseline::purge_repos', Boolean, 'first', true) {
       exec { 'remove RHEL subscriptions':
-        command  => "/usr/sbin/subscription-manager remove --all && /usr/sbin/subscription-manager config --rhsm.auto_enable_yum_plugins=0",
+        command  => '/usr/sbin/subscription-manager remove --all && /usr/sbin/subscription-manager config --rhsm.auto_enable_yum_plugins=0',
         path     => '/usr/bin:/usr/sbin:/bin',
         provider => shell,
         unless   => "/usr/sbin/subscription-manager status | perl -nE 'exit 1 if /Overall Status: Current/'",
         before   => Class['osbaseline'],
       }
-      -> ini_setting { "rh subscription":
+      -> ini_setting { 'rh subscription':
         ensure  => present,
         path    => '/etc/yum/pluginconf.d/subscription-manager.conf',
         section => 'main',
@@ -80,7 +80,8 @@ class osbaseline::repos (
 
     $yum_repos.each | $name, $data | {
       $data2 = deep_merge( { 'name' => $name, descr => $name }, $yum_defaults, $data )
-      if $name =~ /osbaseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ and $do_update and !$constant_enforce {
+      if $name =~ /osbaseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ and
+          $do_update and !$constant_enforce {
         $execs = [ Exec['yum clean'], Exec['queue yum distro-sync' ] ]
       }
       else {
@@ -117,9 +118,9 @@ class osbaseline::repos (
     }
 
     if $constant_enforce {
-      $onlyif = "! yum distro-sync --assumeno"
+      $onlyif = '! yum distro-sync --assumeno'
     } else {
-      $onlyif = 'bash -c "[[ -e /tmp/need_yum_update ]]"',
+      $onlyif = 'bash -c "[[ -e /tmp/need_yum_update ]]"'
     }
 
     exec { 'yum distro-sync':
@@ -144,7 +145,8 @@ class osbaseline::repos (
   } elsif $::osfamily == 'Suse' {
     #notify { "$zypper_repos": }
     create_resources('zypprepo', $zypper_repos, $zypper_defaults)
-    # Purging doesn't work by the moethod below - the zypprepo module will need to support it - or purge with a puppet task included in this module
+    # Purging doesn't work by the moethod below - the zypprepo module will need to support it - 
+    # or purge with a puppet task included in this module
     #file { '/etc/zypp/repos.d/':
     #ensure  => 'directory',
     #recurse => true,
