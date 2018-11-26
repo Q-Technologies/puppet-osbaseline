@@ -13,6 +13,7 @@
   * [Repositories only](#repositories-only)
   * [Manage OS Baseline](#manage-os-baseline)
     * [Included Scripts to Manage Groups](#included-scripts-to-manage-groups)
+      * [Bootstrapping](#bootstrapping)
     * [Script to Manage OS Baseline groups](#script-to-manage-os-baseline-groups)
       * [Examples](#examples)
         * [Initialize the groups in the Classifier](#initialize-the-groups-in-the-classifier)
@@ -116,7 +117,7 @@ The `baseurl` of the repository must match whatever URLs you are serving the bas
 
 
 ### Manage OS Baseline
-If you want to manage the repositories as well as enforce an OS Baseline, you will need to set up some Node Classifer groups (or otherwise set
+If you want to enforce an OS Baseline as well as manage the repositories, you will need to set up some Node Classifer groups (or otherwise set
 a global variable with the baseline version).  If this variable is not set it will fail a Puppet run saying the baseline variable is not set.
 
 If using the Node Classifer, create a group that matches all the nodes you want to manage and set up a variable with the date of the 
@@ -126,7 +127,8 @@ Create additional groups with different dates and move hosts between them as des
 on the next Puppet runs.
 
 If `osbaseline::repos::do_update` is set to `true` in Hiera, the `yum distro-sync` operation will be run against the baseline repo only.
-Currently a reboot is not performed, but this may be added in the future (depending on demand).
+
+If `osbaseline::repos::do_reboot` is set to `true` in Hiera, the system will be rebooted after the puppet run has completed.
 
 #### Included Scripts to Manage Groups
 There are included scripts to manage the creation of the groups and to make it easier to move nodes between the groups.  The scripts are managed through hiera.
@@ -158,13 +160,21 @@ access cert and the CA to another host.  Use `puppet cert generate api_access` t
 
 **Note: There is no mechanism to stop a node being pinned to two groups.  If this happens, Puppet will fail, and you'll need to make sure each node is only in one group.**
 
+##### Bootstrapping
+
+In order to get these scripts installed using Puppet, you will need to turn off enforcae baseline to as the Puppet run will fail if the groups do 
+not exist in the Classifier.  Set this in hiera in the puppet master scope:
+
+    osbaseline::enforce_baseline: false
+
 #### Script to Manage OS Baseline groups
 ```
 baseline_selection -a action -g group [-f] [node1] [node2] [node3]
 ```
 
 * -a, the script actions:
-  * init_soe - create the default group. All nodes matched by the `default_group_rule` will go into this group and receive the `default_osbaseline_date`.  They will receive a different date by being in a new baseline group.
+  * init_soe - create the default group. All nodes matched by the `default_group_rule` will go into this group and receive 
+the `default_osbaseline_date`.  They will receive a different date by being in a new baseline group.
   * add_group - add a new baseline group
   * remove_group - remove the specified group
   * add_to_group - pin a node to a group

@@ -6,11 +6,13 @@ class osbaseline::repos (
   String $yum_log,
 
   # Class parameters are populated from External(hiera)/Defaults/Fail
-  Data      $yum_defaults    = $::osbaseline::yum_defaults,
-  Data      $zypper_defaults = $::osbaseline::zypper_defaults,
-  Boolean   $purge_repos     = $::osbaseline::purge_repos,
-  String    $proxy_url       = $::osbaseline::proxy_url,
-  Boolean   $do_update       = false,
+  Data      $yum_defaults     = $::osbaseline::yum_defaults,
+  Data      $zypper_defaults  = $::osbaseline::zypper_defaults,
+  Boolean   $purge_repos      = $::osbaseline::purge_repos,
+  String    $proxy_url        = $::osbaseline::proxy_url,
+  Boolean   $do_reboot        = false,
+  Boolean   $do_update        = false,
+  Boolean   $constant_enforce = false,
 ) {
 
   include stdlib
@@ -40,6 +42,25 @@ class osbaseline::repos (
       mode    => '0755',
     }
 
+    # Turn off RedHat subscription if we are also purging the repos
+    if $facts['os']['name'] == 'RedHat' and lookup('osbaseline::purge_repos', Boolean, 'first', true) {
+      exec { 'remove RHEL subscriptions':
+        command  => "/usr/sbin/subscription-manager remove --all && /usr/sbin/subscription-manager config --rhsm.auto_enable_yum_plugins=0",
+        path     => '/usr/bin:/usr/sbin:/bin',
+        provider => shell,
+        unless   => "/usr/sbin/subscription-manager status | perl -nE 'exit 1 if /Overall Status: Current/'",
+        before   => Class['osbaseline'],
+      }
+      -> ini_setting { "rh subscription":
+        ensure  => present,
+        path    => '/etc/yum/pluginconf.d/subscription-manager.conf',
+        section => 'main',
+        setting => 'enabled',
+        value   => 0,
+        before  => Class['osbaseline'],
+      }
+    }
+
     file { $yum_conf_path:
       ensure  => file,
       mode    => '0644',
@@ -51,13 +72,16 @@ class osbaseline::repos (
     }
 
     # Create the repositories based on the yum repo data found in hiera. If an osbaseline one is specified
-    # and updates are turned on, then run the yum update.  For all other repos, just run a yum clean all.
-    # Yum update will be notified and because it is refresh only, it will only run if the baseline has changed.
+    # and updates are turned on, then run the yum distro-sync.  For all other repos, just run a yum clean all.
+    # Yum distro-sync will be notified and because it is refresh only, it will only run if the baseline has changed.
+
+    # Currently the yum distro-sync is only triggered on a repo change (i.e. data change), an enhancement will be to
+    # always check whether a distro-sync needs to be done
 
     $yum_repos.each | $name, $data | {
       $data2 = deep_merge( { 'name' => $name, descr => $name }, $yum_defaults, $data )
-      if $name =~ /osbaseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ and $do_update {
-        $execs = [ Exec['yum clean'], Exec['queue yum update' ] ]
+      if $name =~ /osbaseline/ and $::osbaseline_date and $::osbaseline_date =~ /^\d{4}\-\d{2}\-\d{2}$/ and $do_update and !$constant_enforce {
+        $execs = [ Exec['yum clean'], Exec['queue yum distro-sync' ] ]
       }
       else {
         $execs = [ Exec['yum clean'] ]
@@ -85,17 +109,29 @@ class osbaseline::repos (
       refreshonly => true,
     }
 
-    exec { 'queue yum update':
+    exec { 'queue yum distro-sync':
       command     => 'touch /tmp/need_yum_update',
       path        => '/bin:/usr/bin',
-      notify      => Exec['yum update' ],
+      notify      => Exec['yum distro-sync' ],
       refreshonly => true,
     }
 
-    exec { 'yum update':
+    if $constant_enforce {
+      $onlyif = "! yum distro-sync --assumeno"
+    } else {
+      $onlyif = 'bash -c "[[ -e /tmp/need_yum_update ]]"',
+    }
+
+    exec { 'yum distro-sync':
       command => '/usr/bin/yum distro-sync --assumeyes --disablerepo=\* --enablerepo=\*osbaseline\* && rm -f /tmp/need_yum_update',
       path    => '/bin:/usr/bin',
-      onlyif  => 'bash -c "[[ -e /tmp/need_yum_update ]]"',
+      onlyif  => $onlyif,
+    }
+    if $do_reboot {
+      reboot { 'reboot after yum distro-sync':
+        subscribe => Exec['yum distro-sync'],
+        apply     => finished,
+      }
     }
 
     if $::osfamily == 'RedHat' and $::operatingsystemmajrelease == '7' {
@@ -108,7 +144,7 @@ class osbaseline::repos (
   } elsif $::osfamily == 'Suse' {
     #notify { "$zypper_repos": }
     create_resources('zypprepo', $zypper_repos, $zypper_defaults)
-    # Purging doesn't work by the moethod below - the zypprepo module will need to support it
+    # Purging doesn't work by the moethod below - the zypprepo module will need to support it - or purge with a puppet task included in this module
     #file { '/etc/zypp/repos.d/':
     #ensure  => 'directory',
     #recurse => true,
