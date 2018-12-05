@@ -19,6 +19,7 @@
         * [Initialize the groups in the Classifier](#initialize-the-groups-in-the-classifier)
         * [Add a couple of baseline groups](#add-a-couple-of-baseline-groups)
         * [Move nodes from one baseline to another](#move-nodes-from-one-baseline-to-another)
+        * [See which groups certain nodes are in](#see-which-groups-certain-nodes-are-in)
         * [Remove a group even if nodes are pinned to it](#remove-a-group-even-if-nodes-are-pinned-to-it)
 * [Usage - For Repository Servers](#usage---for-repository-servers)
 * [Limitations](#limitations)
@@ -156,7 +157,9 @@ osbaseline::scripts::selection_config:
 ```
 
 It reality, this needs to be run on the Puppet master due to access to certificates.  If you want to run on another host, you can copy the 
-access cert and the CA to another host.  Use `puppet cert generate api_access` to create a cert and add it to `/etc/puppetlabs/console-services/rbac-certificate-whitelist`.
+access cert and the CA to another host.  Use `puppetserver ca generate --certname api_access` (or `puppet cert generate api_access` in older installations)
+to create a cert, add it to `/etc/puppetlabs/console-services/rbac-certificate-whitelist`
+and restart the console services.
 
 **Note: There is no mechanism to stop a node being pinned to two groups.  If this happens, Puppet will fail, and you'll need to make sure each node is only in one group.**
 
@@ -172,19 +175,20 @@ not exist in the Classifier.  Set this in hiera in the puppet master scope:
 baseline_selection -a action -g group [-f] [node1] [node2] [node3]
 ```
 
-* -a, the script actions:
-  * init_soe - create the default group. All nodes matched by the `default_group_rule` will go into this group and receive 
+* `-a`, the script actions:
+  * `init_soe` - create the default group. All nodes matched by the `default_group_rule` will go into this group and receive 
 the `default_osbaseline_date`.  They will receive a different date by being in a new baseline group.
-  * add_group - add a new baseline group
-  * remove_group - remove the specified group
-  * add_to_group - pin a node to a group
-  * remove_from_group - remove the specified nodes from a group
-  * empty_group - empty a group of the nodes pinned to it
-  * list_group - list the nodes pinned to a group
-  * list_groups - list all the sub groups in parent baseline group
-  * purge_old_nodes - remove all the nodes not found in the PuppetDB
-* -g, specify a group name
-* -f, force, e.g force the removal of a group even if nodes are pinned to it
+  * `add_group` - add a new baseline group
+  * `remove_group` - remove the specified group
+  * `add_to_group` - pin a node to a group
+  * `remove_from_group` - remove the specified nodes from a group
+  * `empty_group` - empty a group of the nodes pinned to it
+  * `list_group` - list the nodes pinned to a group
+  * `list_groups` - list all the sub groups in parent baseline group
+  * `purge_old_nodes` - remove all the nodes not found in the PuppetDB
+  * `show_membership_of_nodes` - show which groups nodes are members of (all nodes will be show if none are specified)
+* `-g`, specify a group name
+* `-f`, force, e.g force the removal of a group even if nodes are pinned to it
 * the list of nodes are required when adding/removing from a group
 
 ##### Examples
@@ -199,14 +203,22 @@ the `default_osbaseline_date`.  They will receive a different date by being in a
     baseline_selection -a add_group -g 2018-10-31
 
 ###### Move nodes from one baseline to another
+
+It will automatically unpin from any previous groups the nodes were in.
     
     cat > host.list
     node1.example.com 
     node2.example.com 
     node3.example.com
     <ctrl-d>
-    baseline_selection -a remove_from_group -g 2018-09-30 `cat host.list`
     baseline_selection -a add_to_group -g 2018-10-31 `cat host.list`
+
+###### See which groups certain nodes are in
+
+    baseline_selection -a show_membership_of_nodes node1.example.com node4.example.com
+    ---
+    node1.example.com: 'OS Baseline : 2018-10-31'
+    node4.example.com: Not pinned to any group
 
 ###### Remove a group even if nodes are pinned to it
 

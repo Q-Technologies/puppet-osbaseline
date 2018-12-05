@@ -64,17 +64,17 @@ if( $opt_h ){
     say "$0 -a action -g group [-f] [-v] [-d] node1 [node2] [node3]";
     exit;
 }
-my @actions = qw(init_soe empty_group add_to_group list_group list_groups add_group purge_old_nodes remove_from_group remove_group );
+my @actions = qw(init_soe empty_group add_to_group list_group list_groups add_group purge_old_nodes remove_from_group remove_group show_membership_of_nodes);
 my $action_re = join("|", @actions);
 $action_re = qr/$action_re/;
-$log->fatal_err( "You need to specify the script action: -a ".join(" | ", @actions ) ) if not $opt_a =~ $action_re;
-$log->fatal_err( "You need to specify the group to act upon (-g)" ) if not $opt_g and $opt_a !~ /init_soe|list_groups|purge_old_nodes/;
+$log->fatal_err( "You need to specify the script action: -a ".join(" | ", @actions )." " ) if not $opt_a =~ $action_re;
+$log->fatal_err( "You need to specify the group to act upon (-g)" ) if not $opt_g and $opt_a !~ /init_soe|list_groups|purge_old_nodes|show_membership_of_nodes/;
 
 # Mainline
 my $groups = $classify->get_groups();
 #say Dumper( $groups );
 
-my $seo_parent_id = $classify->get_group_id( $soe_parent );
+my $soe_parent_id = $classify->get_group_id( $soe_parent );
 $log->fatal_err( "Could not find the ID of the '$soe_parent' group which is required.\n  Perhaps you need to run the 'init_soe' action." ) if not $soe_parent and $opt_a ne "init_soe";
 
 # See if we need to add the prefix to the group
@@ -84,16 +84,24 @@ if( $opt_a eq "empty_group" ){
     $classify->empty_group_of_pinned_nodes( $opt_g );
 } elsif( $opt_a eq "add_to_group" ){
     $log->fatal_err( "You need to specify the nodes to add to the group" ) if not @ARGV;
+    $classify->remove_nodes_from_all_groups( $soe_parent_id, \@ARGV );
     $classify->pin_nodes_to_group( $opt_g, \@ARGV );
 } elsif( $opt_a eq "remove_from_group" ){
     $log->fatal_err( "You need to specify the nodes to remove from the group" ) if not @ARGV;
     $classify->remove_pinned_node_from_group( $opt_g, \@ARGV );
 } elsif( $opt_a eq "add_group" ){
-    add_soe_group( $seo_parent_id, $opt_g, \@ARGV);
+    add_soe_group( $soe_parent_id, $opt_g, \@ARGV);
 } elsif( $opt_a eq "purge_old_nodes" ){
-    $classify->purge_old_nodes( $seo_parent_id );
+    $classify->purge_old_nodes( $soe_parent_id );
 } elsif( $opt_a eq "remove_group" ){
     $classify->remove_group_safe( $opt_g, $opt_f );
+} elsif( $opt_a eq "show_membership_of_nodes" ){
+    #$log->fatal_err( "You need to specify the nodes to look up" ) if not @ARGV;
+    say Dump( $classify->show_membership_of_nodes( $soe_parent, \@ARGV ) );
+    #my $ans = $classify->show_membership_of_nodes( $soe_parent, \@ARGV );
+    #for my $node ( sort keys %$ans ){
+    #say $node. ": " . $ans->{$node};
+    #}
 } elsif( $opt_a eq "list_group" ){
     $classify->list_nodes_pinned_in_group( $opt_g );
 } elsif( $opt_a eq "list_groups" ){
