@@ -6,6 +6,7 @@ class osbaseline (
   String  $proxy_url        = '',
   Data    $yum_defaults     = {},
   Data    $zypper_defaults  = {},
+  Data    $multilib_policy  = 'best',
   String  $repo_server      = 'http://mirrorlist.centos.org',
 ) {
 

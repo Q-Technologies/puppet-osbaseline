@@ -10,6 +10,7 @@ class osbaseline::repos (
   Data      $zypper_defaults  = $::osbaseline::zypper_defaults,
   Boolean   $purge_repos      = $::osbaseline::purge_repos,
   String    $proxy_url        = $::osbaseline::proxy_url,
+  String    $multilib_policy  = $::osbaseline::multilib_policy,
   Boolean   $do_reboot        = false,
   Boolean   $do_update        = false,
   Boolean   $constant_enforce = false,
@@ -82,10 +83,12 @@ class osbaseline::repos (
     file { $yum_conf_path:
       ensure  => file,
       mode    => '0644',
-      content => epp('osbaseline/yum.conf.epp', { yum_proxy_url => $proxy_url,
-                                                  yum_repos_d   => $yum_repos_d,
-                                                  os            => $this_os,
-                                                  yum_log       => $yum_log,
+      content => epp('osbaseline/yum.conf.epp', {
+                                                  yum_proxy_url   => $proxy_url,
+                                                  yum_repos_d     => $yum_repos_d,
+                                                  os              => $this_os,
+                                                  yum_log         => $yum_log,
+                                                  multilib_policy => $multilib_policy,
                                                 }),
     }
 

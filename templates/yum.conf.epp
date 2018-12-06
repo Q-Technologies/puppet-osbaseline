@@ -13,6 +13,9 @@ http_cache=none
 <% unless empty($yum_proxy_url) { -%> 
 proxy=<%= $yum_proxy_url %>
 <% } -%>
+<% if $multilib_policy and $facts['os']['release']['major'] =~ /^(4|5|6)$/ { -%> 
+multilib_policy=<%= $multilib_policy %>
+<% } -%>
 reposdir=<%= $yum_repos_d %>
 
 
