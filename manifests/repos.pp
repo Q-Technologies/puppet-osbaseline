@@ -51,17 +51,28 @@ class osbaseline::repos (
         unless   => "/usr/sbin/subscription-manager status | perl -nE 'exit 1 if /Overall Status: Current/'",
         before   => Class['osbaseline'],
       }
-      ini_setting { 'rhn subscription':
-        ensure  => present,
-        path    => '/etc/yum/pluginconf.d/subscription-manager.conf',
-        section => 'main',
-        setting => 'enabled',
-        value   => 0,
-        before  => Class['osbaseline'],
+      if $facts['os']['release']['major'] == '6' {
+        ini_setting { 'rhn subscription':
+          ensure  => present,
+          path    => '/etc/yum/pluginconf.d/subscription-manager.conf',
+          section => 'main',
+          setting => 'enabled',
+          value   => 0,
+          before  => Class['osbaseline'],
+        }
       }
-      exec { 'rhn manage repo':
-        command => '/usr/sbin/subscription-manager config --rhsm.manage_repos=0',
-        onlyif => '/usr/sbin/subscription-manager config | grep -q "manage_repos = \[1\]"',
+      if $facts['os']['release']['major'] == '7' {
+        exec { 'rhsm auto_enable_yum_plugins':
+          command  => '/usr/sbin/subscription-manager config --rhsm.auto_enable_yum_plugins=0',
+          onlyif   => '/usr/sbin/subscription-manager config | grep -q "auto_enable_yum_plugins = \[1\]"',
+          path     => '/usr/bin:/usr/sbin:/bin',
+          provider => shell,
+          before   => Class['osbaseline'],
+        }
+      }
+      exec { 'rhsm manage_repos':
+        command  => '/usr/sbin/subscription-manager config --rhsm.manage_repos=0',
+        onlyif   => '/usr/sbin/subscription-manager config | grep -q "manage_repos = \[1\]"',
         path     => '/usr/bin:/usr/sbin:/bin',
         provider => shell,
         before   => Class['osbaseline'],
@@ -142,14 +153,14 @@ class osbaseline::repos (
       }
     }
 
-    if $::osfamily == 'RedHat' and $::operatingsystemmajrelease == '7' {
+    if $facts['os']['family'] == 'RedHat' and $facts['os']['release']['major'] == '7' {
       service { 'choose_repo':
         ensure => stopped,
         enable => false,
       }
     }
 
-  } elsif $::osfamily == 'Suse' {
+  } elsif $facts['os']['family'] == 'Suse' {
     #notify { "$zypper_repos": }
     create_resources('zypprepo', $zypper_repos, $zypper_defaults)
     # Purging doesn't work by the moethod below - the zypprepo module will need to support it - 
@@ -160,7 +171,7 @@ class osbaseline::repos (
     #purge   => true,
     #} 
   } else {
-      fail("Wrong OS Family, should be RedHat, AIX or Suse, not ${::osfamily}")
+      fail("Wrong OS Family, should be RedHat, AIX or Suse, not ${facts['os']['family']}")
   }
 
 
