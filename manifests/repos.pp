@@ -51,13 +51,20 @@ class osbaseline::repos (
         unless   => "/usr/sbin/subscription-manager status | perl -nE 'exit 1 if /Overall Status: Current/'",
         before   => Class['osbaseline'],
       }
-      -> ini_setting { 'rh subscription':
+      ini_setting { 'rhn subscription':
         ensure  => present,
         path    => '/etc/yum/pluginconf.d/subscription-manager.conf',
         section => 'main',
         setting => 'enabled',
         value   => 0,
         before  => Class['osbaseline'],
+      }
+      exec { 'rhn manage repo':
+        command => '/usr/sbin/subscription-manager config --rhsm.manage_repos=0',
+        onlyif => '/usr/sbin/subscription-manager config | grep -q "manage_repos = \[1\]"',
+        path     => '/usr/bin:/usr/sbin:/bin',
+        provider => shell,
+        before   => Class['osbaseline'],
       }
     }
 
