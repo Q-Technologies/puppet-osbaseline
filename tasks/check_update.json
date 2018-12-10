@@ -2,6 +2,6 @@
   "description": "Shows all packages that have update candidates according to the current baseline",
   "input_method": "environment",
   "implementations": [
-    {"name": "check_update.sh"}
+    {"name": "check_update.pl"}
   ]
 }
