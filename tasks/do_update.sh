@@ -16,3 +16,6 @@ else
     (>&2 echo "Unsupported OS")
     exit 1
 fi
+
+echo Performing upgrade now...
+$command
