@@ -21,6 +21,7 @@
         * [Move nodes from one baseline to another](#move-nodes-from-one-baseline-to-another)
         * [See which groups certain nodes are in](#see-which-groups-certain-nodes-are-in)
         * [Remove a group even if nodes are pinned to it](#remove-a-group-even-if-nodes-are-pinned-to-it)
+  * [Deploy OS Baseline](#deploy-os-baseline)
 * [Usage - For Repository Servers](#usage---for-repository-servers)
 * [Limitations](#limitations)
 * [Development](#development)
@@ -223,6 +224,20 @@ It will automatically unpin from any previous groups the nodes were in.
 ###### Remove a group even if nodes are pinned to it
 
     baseline_selection -a remove_group -f
+
+### Deploy OS Baseline
+
+Here is an example workflow for upgrading nodes from one baseline to another:
+
+* Identify machines to upgrade (or downgrade)
+  * node1.example.com
+  * node2.example.com
+* Create the new baseline on the YUM server (assuming the latest packages are already downloaded): `lobm -c /etc/lobm/baselines/RedHat6_201811 -o 2018-12-10`
+* Create the corresponding group in the Puppet console: `baseline_selection -a add_group -g 2018-12-10`
+* Add nodes to OS Baseline group in Puppet: `baseline_selection -a add_to_group -g 2018-12-10 node1.example.com node2.example.com`
+* Run puppet on nodes: `puppet job run -n node1.example.com,node2.example.com`
+* Preview the package changes (optional): `puppet task run osbaseline::check_update -n node1.example.com,node2.example.com`
+
 
 ## Usage - For Repository Servers
 Include the `osbaseline::server` class in the profile of your repository server:

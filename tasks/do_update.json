@@ -1,0 +1,7 @@
+{
+  "description": "Perform the software update (or downgrade when supported)",
+  "input_method": "environment",
+  "implementations": [
+    {"name": "do_update.sh", "requirements": ["shell"]}
+  ]
+}
