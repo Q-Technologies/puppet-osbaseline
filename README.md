@@ -229,14 +229,23 @@ It will automatically unpin from any previous groups the nodes were in.
 
 Here is an example workflow for upgrading nodes from one baseline to another:
 
+Pre-tasks:
+
+* Create the new baseline on the YUM server (assuming the latest packages are already downloaded): `lobm -c /etc/lobm/baselines/RedHat6_201811 -o 2018-12-10`
+* Create the corresponding group in the Puppet console: `baseline_selection -a add_group -g 2018-12-10`
+
+
+Tasks:
+
 * Identify machines to upgrade (or downgrade)
   * node1.example.com
   * node2.example.com
-* Create the new baseline on the YUM server (assuming the latest packages are already downloaded): `lobm -c /etc/lobm/baselines/RedHat6_201811 -o 2018-12-10`
-* Create the corresponding group in the Puppet console: `baseline_selection -a add_group -g 2018-12-10`
 * Add nodes to OS Baseline group in Puppet: `baseline_selection -a add_to_group -g 2018-12-10 node1.example.com node2.example.com`
 * Run puppet on nodes: `puppet job run -n node1.example.com,node2.example.com`
 * Preview the package changes (optional): `puppet task run osbaseline::check_update -n node1.example.com,node2.example.com`
+* Perform update: `puppet task run osbaseline::do_update -n node1.example.com,node2.example.com`
+* Run puppet on nodes: `puppet job run -n node1.example.com,node2.example.com`
+* Reboot: `puppet task run reboot -n node1.example.com,node2.example.com`
 
 
 ## Usage - For Repository Servers

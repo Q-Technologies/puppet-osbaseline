@@ -9,6 +9,10 @@
   "issues_url": "https://github.com/Q-Technologies/puppet-osbaseline/issues",
   "dependencies": [
     {
+      "name": "puppetlabs-reboot",
+      "version_requirement": ">= 2.0.0 <3.0.0"
+    },
+    {
       "name": "puppetlabs-stdlib",
       "version_requirement": ">= 4.16.0 <6.0.0"
     },

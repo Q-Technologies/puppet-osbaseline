@@ -13,6 +13,13 @@ for my $pkg ( @installed ){
 
 chomp( my @updates = `yum -q check-update --disablerepo=\* --enablerepo=\*osbaseline\*` );
 
+for( @updates ){
+    say $_;
+}
+exit 0;
+
+# Structured data not working for all scenarios - so not active for now
+
 for(my $i=0; $i<@updates; $i++) {
     # delete any blank or heading lines
     if( $updates[$i] =~ /(^$)|Obsoleting/ ) {
