@@ -19,3 +19,6 @@ fi
 
 echo Performing upgrade now...
 $command
+
+mkdir -p /etc/puppetlabs/facter/facts.d/
+echo "osbaseline_update_last_run=$(date '+%Y-%m-%d %T')" > /etc/puppetlabs/facter/facts.d/osbaseline_update_last_run.txt
