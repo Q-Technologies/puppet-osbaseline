@@ -82,7 +82,7 @@ $opt_g = $soe_prefix.$opt_g if( $opt_g !~ /^$soe_prefix/ );
 
 my @nodes;
 for my $node ( @ARGV ){
-    my @n = split /,/ $node;
+    my @n = split /,/, $node;
     push @nodes, @n;
 }
 
