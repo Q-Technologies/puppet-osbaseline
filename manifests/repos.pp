@@ -59,18 +59,18 @@ class osbaseline::repos (
           section => 'main',
           setting => 'enabled',
           value   => 0,
-          before  => Class['osbaseline'],
+          after  => Exec['rhsm auto_enable_yum_plugins'],
         }
       }
-      if $facts['os']['release']['major'] == '7' {
-        exec { 'rhsm auto_enable_yum_plugins':
-          command  => '/usr/sbin/subscription-manager config --rhsm.auto_enable_yum_plugins=0',
-          onlyif   => '/usr/sbin/subscription-manager config | grep -q "auto_enable_yum_plugins = \[1\]"',
-          path     => '/usr/bin:/usr/sbin:/bin',
-          provider => shell,
-          before   => Class['osbaseline'],
-        }
+      #if $facts['os']['release']['major'] == '7' {
+      exec { 'rhsm auto_enable_yum_plugins':
+        command  => '/usr/sbin/subscription-manager config --rhsm.auto_enable_yum_plugins=0',
+        onlyif   => '/usr/sbin/subscription-manager config | grep -q "auto_enable_yum_plugins = \[1\]"',
+        path     => '/usr/bin:/usr/sbin:/bin',
+        provider => shell,
+        before   => Class['osbaseline'],
       }
+      #}
       exec { 'rhsm manage_repos':
         command  => '/usr/sbin/subscription-manager config --rhsm.manage_repos=0',
         onlyif   => '/usr/sbin/subscription-manager config | grep -q "manage_repos = \[1\]"',
