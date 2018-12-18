@@ -11,7 +11,8 @@ for my $pkg ( @installed ){
     $packages->{$name} = $version;
 }
 
-chomp( my @updates = `yum -q check-update --disablerepo=\* --enablerepo=\*osbaseline\*` );
+#chomp( my @updates = `yum -q check-update --disablerepo=\* --enablerepo=\*osbaseline\*` );
+chomp( my @updates = `yum distro-sync --assumeno --disablerepo=\* --enablerepo=\*osbaseline\*` );
 
 for( @updates ){
     say $_;
