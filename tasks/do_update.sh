@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ -f /etc/redhat-release ]]; then
-    command='/usr/bin/yum distro-sync --assumeyes --disablerepo=\* --enablerepo=\*osbaseline\*'
+    command='/usr/bin/yum distro-sync --assumeyes --disablerepo=* --enablerepo=*osbaseline*'
 elif [[ -f /etc/SuSE-release ]]; then
     command='zypper dup -y'
 elif [[ -f /etc/os-release ]]; then
