@@ -59,7 +59,7 @@ class osbaseline::repos (
           section => 'main',
           setting => 'enabled',
           value   => 0,
-          after  => Exec['rhsm auto_enable_yum_plugins'],
+          require => Exec['rhsm auto_enable_yum_plugins'],
         }
       }
       #if $facts['os']['release']['major'] == '7' {
