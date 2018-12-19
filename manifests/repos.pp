@@ -139,7 +139,7 @@ class osbaseline::repos (
     }
 
     if $constant_enforce {
-      $onlyif = '! yum distro-sync --assumeno'
+      $onlyif = '! yum distro-sync --assumeno --disablerepo=\* --enablerepo=\*osbaseline\*'
     } else {
       $onlyif = 'bash -c "[[ -e /tmp/need_yum_update ]]"'
     }
