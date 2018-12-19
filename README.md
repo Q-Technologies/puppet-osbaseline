@@ -240,12 +240,25 @@ Tasks:
 * Identify machines to upgrade (or downgrade)
   * node1.example.com
   * node2.example.com
-* Add nodes to OS Baseline group in Puppet: `baseline_selection -a add_to_group -g 2018-12-10 node1.example.com node2.example.com`
+* Add nodes to OS Baseline group in Puppet: `baseline_selection -a add_to_group -g 2018-12-10 node1.example.com,node2.example.com`
 * Run puppet on nodes: `puppet job run -n node1.example.com,node2.example.com`
 * Preview the package changes (optional): `puppet task run osbaseline::check_update -n node1.example.com,node2.example.com`
 * Perform update: `puppet task run osbaseline::do_update -n node1.example.com,node2.example.com`
 * Run puppet on nodes: `puppet job run -n node1.example.com,node2.example.com`
 * Reboot: `puppet task run reboot -n node1.example.com,node2.example.com`
+
+Alternatively, if you have specified in hiera:
+```
+osbaseline::repos::do_update: true
+osbaseline::repos::do_reboot: true
+```
+
+These tasks:
+* Identify machines to upgrade (or downgrade)
+  * node1.example.com
+  * node2.example.com
+* Add nodes to OS Baseline group in Puppet: `baseline_selection -a add_to_group -g 2018-12-10 node1.example.com,node2.example.com`
+* Run puppet on nodes: `puppet job run -n node1.example.com,node2.example.com`
 
 
 ## Usage - For Repository Servers

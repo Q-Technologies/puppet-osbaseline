@@ -148,6 +148,7 @@ class osbaseline::repos (
       command => '/usr/bin/yum distro-sync --assumeyes --disablerepo=\* --enablerepo=\*osbaseline\* && rm -f /tmp/need_yum_update',
       path    => '/bin:/usr/bin',
       onlyif  => $onlyif,
+      timeout => 0,
     }
     if $do_reboot {
       reboot { 'reboot after yum distro-sync':
