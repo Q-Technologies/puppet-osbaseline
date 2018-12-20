@@ -6,7 +6,11 @@ class osbaseline::server (
   String $lobm_install_from = 'package',
 ){
 
-  include stdlib
+  File {
+    owner => 'root',
+    group => 'root',
+    mode  => '0644',
+  }
 
   # Set up LOBM
   if $lobm_install_from == 'package' {
