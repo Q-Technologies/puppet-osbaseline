@@ -19,7 +19,7 @@ class osbaseline::scripts (
       path    => $selection_script_path,
       owner   => 'root',
       group   => 'root',
-      mode    => '0750',
+      mode    => '0755',
       content => epp('osbaseline/baseline_selection.pl.epp', { selection_config_path => $selection_config_path })
     }
 
@@ -31,7 +31,7 @@ class osbaseline::scripts (
       path    => $selection_config_path,
       owner   => 'root',
       group   => 'root',
-      mode    => '0640',
+      mode    => '0644',
       content => inline_template('<%= @selection_config_merged.to_yaml %>'),
     }
   }

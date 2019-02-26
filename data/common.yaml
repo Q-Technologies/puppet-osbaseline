@@ -8,7 +8,7 @@ osbaseline::scripts::selection_config_path: /usr/local/etc/baseline_selection.ya
 osbaseline::scripts::selection_config_default:
   puppet_classify_host: puppet
   puppet_classify_port: 4433
-  puppet_classify_cert: api_access
+  #puppet_classify_cert: api_access
   puppet_ssl_path: "/etc/puppetlabs/puppet/ssl"
   puppetdb_host: localhost
   puppetdb_port: 8080
