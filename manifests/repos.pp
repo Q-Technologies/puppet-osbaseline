@@ -113,7 +113,7 @@ class osbaseline::repos (
             or $name !~ /osbaseline/ ){
         file { "${yum_repos_d}/${name}.repo":
           ensure  => file,
-          mode    => '0444',
+          mode    => '0644',
           notify  => $execs,
           content => inline_epp(@(END), { name => $name, data => $data2 })
             [<%= $name %>]
