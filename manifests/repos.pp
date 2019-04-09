@@ -14,6 +14,7 @@ class osbaseline::repos (
   Boolean   $do_reboot        = false,
   Boolean   $do_update        = false,
   Boolean   $constant_enforce = false,
+  String    $file_mode        = '0444',
 ) {
 
   include stdlib
@@ -113,7 +114,7 @@ class osbaseline::repos (
             or $name !~ /osbaseline/ ){
         file { "${yum_repos_d}/${name}.repo":
           ensure  => file,
-          mode    => '0444',
+          mode    => $file_mode,
           notify  => $execs,
           content => inline_epp(@(END), { name => $name, data => $data2 })
             [<%= $name %>]

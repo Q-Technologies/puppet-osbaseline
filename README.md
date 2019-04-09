@@ -82,6 +82,7 @@ osbaseline::enforce_baseline: false
 Inside your Hiera you need to define the location of the repositories to be managed, e.g.:
 ```
 
+osbaseline::repos::file_mode: '0444'
 osbaseline::repos::all_yum:
   'linuxutil':
     descr: 'Common Linux Utilities Repo'
