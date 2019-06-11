@@ -41,6 +41,7 @@ class osbaseline::repos (
       ensure  => directory,
       recurse => $purge_repos,
       purge   => $purge_repos,
+      force   => $purge_repos,
       mode    => '0755',
     }
 
