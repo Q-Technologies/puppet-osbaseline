@@ -1,7 +1,7 @@
 #!/bin/bash
 FILE="/tmp/linux_do_update.log"
 if [[ -f /etc/redhat-release ]]; then
-    command='package-cleanup --oldkkernels --count=1 --assumeyes && /usr/bin/yum distro-sync --assumeyes --disablerepo=* --enablerepo=*osbaseline*'
+    command='package-cleanup --oldkernels --count=1 --assumeyes && /usr/bin/yum distro-sync --assumeyes --disablerepo=* --enablerepo=*osbaseline*'
 elif [[ -f /etc/SuSE-release ]]; then
     command='zypper dup -y'
 elif [[ -f /etc/os-release ]]; then
