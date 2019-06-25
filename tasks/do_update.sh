@@ -19,9 +19,8 @@ fi
 
 echo Performing upgrade now...
 $command > ${FILE}
-RC=`echo $?`
 if [[ $? -ne 0 ]]; then
-    echo "Error with patching host on $HOST" >> ${FILE}
+    echo "Error patching host: $(hostname -f)" >> ${FILE}
 else
     mkdir -p /etc/puppetlabs/facter/facts.d/
     echo "osbaseline_update_last_run=$(date '+%Y-%m-%d %T')" > /etc/puppetlabs/facter/facts.d/osbaseline_update_last_run.txt    
