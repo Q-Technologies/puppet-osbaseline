@@ -18,7 +18,7 @@ else
 fi
 
 echo Performing upgrade now...
-$command > ${FILE}
+eval $command > ${FILE}
 if [[ $? -ne 0 ]]; then
     echo "Error patching host: $(hostname -f)" >> ${FILE}
 else
