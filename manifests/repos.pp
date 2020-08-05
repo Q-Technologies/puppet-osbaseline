@@ -46,7 +46,7 @@ class osbaseline::repos (
     }
 
     # Turn off RedHat subscription if we are also purging the repos
-    if $facts['os']['name'] == 'RedHat' and lookup('osbaseline::purge_repos', Boolean, 'first', true) {
+    if $facts['os']['name'] == 'RedHat' and $purge_repos {
       exec { 'remove RHEL subscriptions':
         command  => '/usr/sbin/subscription-manager remove --all && /usr/sbin/subscription-manager config --rhsm.auto_enable_yum_plugins=0',
         path     => '/usr/bin:/usr/sbin:/bin',
@@ -169,13 +169,21 @@ class osbaseline::repos (
   } elsif $facts['os']['family'] == 'Suse' {
     #notify { "$zypper_repos": }
     create_resources('zypprepo', $zypper_repos, $zypper_defaults)
-    # Purging doesn't work by the moethod below - the zypprepo module will need to support it - 
+    $zypp_dir = '/etc/zypp/repos.d/'
+    $zypper_repos.each | $name, $data | {
+      file { "$zypp_dir/${name}.repo":
+        ensure => present,
+      }
+    }
+    # Purging doesn't work by the method below - the zypprepo module will need to support it - 
     # or purge with a puppet task included in this module
-    #file { '/etc/zypp/repos.d/':
-    #ensure  => 'directory',
-    #recurse => true,
-    #purge   => true,
-    #} 
+    if $purge_repos {
+      file { $zypp_dir:
+        ensure  => 'directory',
+        recurse => true,
+        purge   => true,
+      }
+    }
   } else {
       fail("Wrong OS Family, should be RedHat, AIX or Suse, not ${facts['os']['family']}")
   }
