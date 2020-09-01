@@ -1,0 +1,13 @@
+{
+  "description": "List all repositories on a node",
+  "input_method": "environment",
+  "implementations": [
+    {"name": "list_repos.sh", "requirements": ["shell"]}
+  ],
+  "parameters": {
+    "repo_dir": {
+      "description": "Override the default OS repository directory",
+      "type": "Optional[String[1]]"
+    }
+  }
+}
