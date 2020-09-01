@@ -9,6 +9,8 @@ if [[ -z ${PT_repo_dir} ]]; then
     elif [[ -f /etc/os-release ]]; then
         if [[ $(grep -ci suse /etc/os-release) -gt 0 ]]; then
             PT_repo_dir=/etc/zypp/repos.d
+        elif [[ $(grep -ci redhat /etc/os-release) -gt 0 ]]; then
+            PT_repo_dir=/etc/yum.conf
         else
             (>&2 echo "Unsupported OS")
             exit 1
@@ -34,10 +36,14 @@ else
     elif [[ -f /etc/os-release ]]; then
         if [[ $(grep -ci suse /etc/os-release) -gt 0 ]]; then
             zypper -D ${PT_repo_dir} lr -d
+        elif [[ $(grep -ci redhat /etc/os-release) -gt 0 ]]; then
+            yum -c ${PT_repo_dir} repoinfo
         else
             (>&2 echo "Unsupported OS")
             exit 1
         fi
+    elif [[ $(uname -s) = "AIX" ]]; then
+        yum -c ${PT_repo_dir} repoinfo
     else
         (>&2 echo "Unsupported OS")
         exit 1
